@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Push-up hisoblagich</title>
+<link rel="manifest" href="manifest.json">
+</head>
+<style>
+  :root{
+    --bg:#ECEEE6;
+    --ink:#14182B;
+    --muted:#666B84;
+    --accent:#2A3BFF;
+    --accent-ink:#FFFFFF;
+    --warm:#FF5B2E;
+    --surface:rgba(255,255,255,.72);
+    --line:rgba(20,24,43,.13);
+    --track:rgba(20,24,43,.2);
+    --shadow:0 1px 0 rgba(20,24,43,.05), 0 10px 26px -14px rgba(20,24,43,.28);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0B0E24;
+      --ink:#EEF0FF;
+      --muted:#8F95BA;
+      --accent:#8492FF;
+      --accent-ink:#0B0E24;
+      --warm:#FF7A4D;
+      --surface:rgba(255,255,255,.06);
+      --line:rgba(238,240,255,.14);
+      --track:rgba(238,240,255,.22);
+      --shadow:none;
+      color-scheme: dark;
+    }
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-optical-sizing:auto;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+    padding:calc(40px + env(safe-area-inset-top,0px)) 22px calc(48px + env(safe-area-inset-bottom,0px));
+  }
+  button{font:inherit;color:inherit}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+  .app{max-width:520px;margin:0 auto}
+
+  /* ---------- hero ---------- */
+  .hero{text-align:center}
+  .ring{position:relative;width:min(80vw,340px);aspect-ratio:1;margin:0 auto;container-type:inline-size}
+  .ring svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .ring circle{fill:none;transform:rotate(-90deg);transform-origin:50% 50%;transform-box:fill-box}
+  .ticks{stroke:var(--track);stroke-width:12;stroke-dasharray:1.6 7.196}
+  .prog{stroke:var(--accent);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+  .readout{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+  .count{
+    font-size:34cqw;font-weight:800;line-height:.9;letter-spacing:-.045em;
+    font-variation-settings:"wdth" 78;font-variant-numeric:tabular-nums;
+  }
+  .count.d4{font-size:26cqw}
+  .count.d5{font-size:21cqw}
+  .count.bump{animation:bump .32s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .unit{margin-top:12px;color:var(--muted);font-size:1rem;font-weight:500}
+  .floats{position:absolute;inset:0;pointer-events:none}
+  .float{
+    position:absolute;left:50%;top:14%;font-size:1.6rem;font-weight:750;color:var(--accent);
+    animation:floatUp 1s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes floatUp{
+    0%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),14px)}
+    18%{opacity:1}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-56px)}
+  }
+
+  /* ---------- add ---------- */
+  .add{margin-top:36px}
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .chip-cell{position:relative}
+  .chip{
+    width:100%;height:58px;border-radius:18px;border:1px solid var(--line);background:var(--surface);
+    box-shadow:var(--shadow);cursor:pointer;font-size:1.15rem;font-weight:650;font-variant-numeric:tabular-nums;
+    transition:background .18s,color .18s,border-color .18s,transform .12s;
+  }
+  @media (hover:hover){ .chip:not(.ghost):hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)} }
+  .chip:active{transform:scale(.94)}
+  .chip.ghost{
+    display:flex;align-items:center;justify-content:center;gap:6px;background:transparent;box-shadow:none;
+    border:1.5px dashed var(--track);color:var(--muted);font-size:.95rem;font-weight:500;
+  }
+  @media (hover:hover){ .chip.ghost:hover{border-color:var(--accent);color:var(--accent)} }
+  .chip.ghost svg{width:14px;height:14px}
+  .chip-input{
+    width:100%;height:58px;border-radius:18px;border:1.5px solid var(--accent);background:var(--surface);
+    text-align:center;font:inherit;font-size:1.15rem;font-weight:650;color:var(--ink);outline:none;
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent);
+  }
+  .x{
+    position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;cursor:pointer;
+    background:var(--ink);color:var(--bg);font-size:14px;line-height:1;display:grid;place-items:center;
+    transition:opacity .15s;
+  }
+  @media (hover:hover){
+    .x{opacity:0}
+    .chip-cell:hover .x,.x:focus-visible{opacity:1}
+  }
+
+  .custom{margin-top:14px;display:flex;gap:10px}
+  .num{
+    flex:1;min-width:0;height:62px;border-radius:20px;border:1.5px solid var(--line);background:var(--surface);
+    padding:0 22px;font:inherit;font-size:1.3rem;font-weight:600;color:var(--ink);
+    font-variant-numeric:tabular-nums;transition:border-color .18s,box-shadow .18s;
+  }
+  .num::placeholder{color:var(--muted);font-weight:400;font-size:1.05rem}
+  .num:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .plus{
+    width:62px;height:62px;border-radius:20px;border:0;cursor:pointer;background:var(--accent);color:var(--accent-ink);
+    display:grid;place-items:center;transition:transform .12s,filter .18s;flex:none;
+  }
+  .plus svg{width:24px;height:24px}
+  @media (hover:hover){ .plus:hover{filter:brightness(1.1)} }
+  .plus:active{transform:scale(.92)}
+  .custom.shake{animation:shake .35s}
+  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .hint{margin-top:12px;font-size:.88rem;color:var(--muted)}
+
+  /* ---------- footer ---------- */
+  .foot{margin-top:44px;text-align:center}
+  .link{
+    background:none;border:0;cursor:pointer;color:var(--muted);font-size:.92rem;
+    text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--track);transition:color .2s;
+  }
+  .link.armed{color:var(--warm);text-decoration-color:var(--warm)}
+  .link:disabled{opacity:.4;cursor:default}
+  .note{margin-top:14px;font-size:.85rem;color:var(--warm)}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<main class="app">
+
+  <section class="hero">
+    <div class="ring" id="ring">
+      <svg viewBox="0 0 320 320" aria-hidden="true">
+        <circle class="ticks" cx="160" cy="160" r="140"/>
+        <circle class="prog" id="prog" cx="160" cy="160" r="140"/>
+      </svg>
+      <div class="readout">
+        <div class="count" id="count" aria-live="polite">0</div>
+      </div>
+      <div class="floats" id="floats"></div>
+    </div>
+  </section>
+
+  <section class="add">
+    <div class="chips" id="chips"></div>
+    <div class="custom" id="custom">
+      <input class="num" id="num" type="text" inputmode="numeric" autocomplete="off" maxlength="4" aria-label="Boshqa son">
+      <button class="plus" id="plus" type="button" aria-label="Qo‘shish">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <button class="link" id="reset" type="button">Reset</button>
+    <p class="note" id="note" hidden>Brauzer saqlashga ruxsat bermayapti: fayl yopilsa, sonlar yo‘qoladi.</p>
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const KEY = "pushup-tracker-v1";
+  const DEFAULT_CHIPS = [10, 15, 20, 25, 30, 40, 50];
+
+  /* Halqa har 100 tada bir marta to‘liq aylanadi. */
+  const LAP = 100;
+  const RADIUS = 140, CIRC = 2 * Math.PI * RADIUS;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const $ = id => document.getElementById(id);
+  const el = { ring:$("ring"), prog:$("prog"), count:$("count"), floats:$("floats"), chips:$("chips"),
+    custom:$("custom"), num:$("num"), plus:$("plus"), reset:$("reset"), note:$("note") };
+
+  /* ---------- state + storage ---------- */
+  let state = { chips: DEFAULT_CHIPS.slice(), days: {} };
+  let saveOk = true;
+
+  try { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); } catch (e) { saveOk = false; }
+
+  const cleanChips = arr => [...new Set((Array.isArray(arr) ? arr : []).map(Number)
+    .filter(n => Number.isInteger(n) && n > 0 && n <= 9999))].sort((a, b) => a - b);
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (!p || typeof p !== "object") return;
+      // Eski versiyada faqat qo‘shilgan tugmalar saqlangan edi: standartlarga qo‘shib olamiz.
+      state.chips = p.v === 2 ? cleanChips(p.chips) : cleanChips([...DEFAULT_CHIPS, ...(p.chips || [])]);
+      state.days = {};
+      if (p.days && typeof p.days === "object") {
+        for (const [k, v] of Object.entries(p.days)) {
+          if (v && Number.isFinite(v.n)) {
+            state.days[k] = { n: Math.max(0, v.n | 0) };
+          }
+        }
+      }
+    } catch (e) { /* buzilgan ma'lumot bo'lsa, bo'sh holatdan boshlaymiz */ }
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ v: 2, chips: state.chips, days: state.days })); saveOk = true; }
+    catch (e) { saveOk = false; }
+    el.note.hidden = saveOk;
+  }
+
+  /* ---------- date helpers ---------- */
+  const pad = n => String(n).padStart(2, "0");
+  const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  let todayKey = keyOf(new Date());
+  const countOf = k => (state.days[k] ? state.days[k].n : 0);
+  const dayObj = k => state.days[k] || (state.days[k] = { n: 0 });
+  function syncDay() {
+    const k = keyOf(new Date());
+    if (k !== todayKey) { todayKey = k; return true; }
+    return false;
+  }
+
+  /* ---------- actions ---------- */
+  /* Tarix (undo / redo): musbat son — qo‘shilgan, manfiy son — Reset qilingan miqdor. */
+  let undoStack = [], redoStack = [];
+
+  function rollDay() {
+    if (syncDay()) { undoStack = []; redoStack = []; return true; }
+    return false;
+  }
+
+  function change(delta) {
+    const d = dayObj(todayKey);
+    d.n = Math.max(0, d.n + delta);
+  }
+
+  function add(n) {
+    n = Math.trunc(n);
+    if (!(n > 0)) return false;
+    n = Math.min(n, 9999);
+    rollDay();
+    change(n);
+    undoStack.push(n);
+    redoStack = [];
+    save();
+    render(true);
+    burst(n);
+    return true;
+  }
+
+  function undo() {
+    rollDay();
+    if (!undoStack.length) return;
+    const delta = undoStack.pop();
+    redoStack.push(delta);
+    change(-delta);
+    save();
+    render(true);
+    burst(-delta);
+  }
+
+  function redo() {
+    rollDay();
+    if (!redoStack.length) return;
+    const delta = redoStack.pop();
+    undoStack.push(delta);
+    change(delta);
+    save();
+    render(true);
+    burst(delta);
+  }
+
+  /* Reset: hech narsa so‘ramaydi, darhol nolga tushiradi (Ctrl+Z bilan qaytarish mumkin). */
+  el.reset.addEventListener("click", () => {
+    rollDay();
+    const n = countOf(todayKey);
+    if (!n) return;
+    change(-n);
+    undoStack.push(-n);
+    redoStack = [];
+    save();
+    render(true);
+  });
+
+  /* ---------- rendering ---------- */
+  let shown = 0, raf = 0;
+  function setCount(target, animate) {
+    cancelAnimationFrame(raf);
+    const len = String(target).length;
+    el.count.classList.toggle("d4", len === 4);
+    el.count.classList.toggle("d5", len >= 5);
+    const from = shown;
+    if (!animate || reduce || from === target) { shown = target; el.count.textContent = target; return; }
+    const t0 = performance.now();
+    const dur = Math.min(800, 320 + Math.abs(target - from) * 7);
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      shown = Math.round(from + (target - from) * e);
+      el.count.textContent = shown;
+      if (p < 1) raf = requestAnimationFrame(step); else shown = target;
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  function burst(n) {
+    if (reduce) return;
+    const s = document.createElement("span");
+    s.className = "float";
+    s.textContent = (n > 0 ? "+" : "−") + Math.abs(n);
+    s.style.setProperty("--dx", (Math.random() * 70 - 35).toFixed(0) + "px");
+    el.floats.append(s);
+    s.addEventListener("animationend", () => s.remove());
+    el.count.classList.remove("bump");
+    void el.count.offsetWidth;
+    el.count.classList.add("bump");
+  }
+
+  function renderRing(n) {
+    const p = n === 0 ? 0 : (((n - 1) % LAP) + 1) / LAP;
+    el.prog.style.strokeDasharray = CIRC;
+    el.prog.style.strokeDashoffset = CIRC * (1 - p);
+  }
+
+  function render(animate) {
+    syncDay();
+    const n = countOf(todayKey);
+    setCount(n, animate);
+    renderRing(n);
+    el.reset.disabled = n === 0;
+  }
+
+  /* ---------- quick chips (hammasini o‘chirish mumkin) ---------- */
+  let editingChip = false;
+
+  function renderChips() {
+    el.chips.innerHTML = "";
+    for (const n of state.chips) {
+      const cell = document.createElement("div");
+      cell.className = "chip-cell";
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.dataset.n = n; b.textContent = "+" + n;
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "x"; x.dataset.remove = n; x.textContent = "×";
+      x.setAttribute("aria-label", `+${n} tugmasini o‘chirish`);
+      cell.append(b, x);
+      el.chips.append(cell);
+    }
+    const last = document.createElement("div");
+    last.className = "chip-cell";
+    if (editingChip) {
+      const i = document.createElement("input");
+      i.className = "chip-input"; i.type = "text"; i.inputMode = "numeric"; i.maxLength = 4;
+      i.setAttribute("aria-label", "Yangi tugma uchun son");
+      i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 4); });
+      i.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); commitChip(i.value); }
+        else if (e.key === "Escape") { editingChip = false; renderChips(); }
+      });
+      i.addEventListener("blur", () => { if (!editingChip) return; editingChip = false; renderChips(); });
+      last.append(i);
+    } else {
+      const g = document.createElement("button");
+      g.type = "button"; g.className = "chip ghost"; g.id = "addChip";
+      g.setAttribute("aria-label", "Yangi tezkor tugma qo‘shish");
+      g.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>Add`;
+      last.append(g);
+    }
+    el.chips.append(last);
+    if (editingChip) el.chips.querySelector(".chip-input").focus();
+  }
+
+  function commitChip(v) {
+    editingChip = false;
+    const n = parseInt(v, 10);
+    if (n > 0 && n <= 9999 && !state.chips.includes(n)) {
+      state.chips = cleanChips([...state.chips, n]);
+      save();
+    }
+    renderChips();
+  }
+
+  el.chips.addEventListener("click", e => {
+    const x = e.target.closest(".x");
+    if (x) {
+      const n = +x.dataset.remove;
+      state.chips = state.chips.filter(c => c !== n);
+      save(); renderChips();
+      return;
+    }
+    if (e.target.closest("#addChip")) { editingChip = true; renderChips(); return; }
+    const c = e.target.closest(".chip");
+    if (c && c.dataset.n) add(+c.dataset.n);
+  });
+
+  /* ---------- own number ---------- */
+  el.num.addEventListener("input", () => { el.num.value = el.num.value.replace(/\D/g, "").slice(0, 4); });
+
+  function commitNum() {
+    const n = parseInt(el.num.value, 10);
+    if (!n) {
+      el.custom.classList.remove("shake");
+      void el.custom.offsetWidth;
+      el.custom.classList.add("shake");
+      el.num.focus();
+      return;
+    }
+    add(n);
+    el.num.value = "";
+  }
+  el.plus.addEventListener("click", () => { commitNum(); el.num.focus(); });
+
+  /* ---------- keyboard ---------- */
+  /* Caps Lock yoqilgan yoki o‘chiq bo‘lishidan qat’i nazar ishlaydi:
+     raqam yoziladi, keyin + (Num bloki yoki oddiy) yoki Enter bosiladi. */
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+
+    // Ctrl+Z — orqaga, Ctrl+Y (yoki Ctrl+Shift+Z) — oldinga
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === "KeyZ" || e.code === "KeyY")) {
+      if (t.tagName === "INPUT" && (t !== el.num || t.value)) return;
+      e.preventDefault();
+      if (e.code === "KeyY" || e.shiftKey) redo(); else undo();
+      return;
+    }
+
+    if (t.tagName === "INPUT" && t !== el.num) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    if (e.key === "+" || e.code === "NumpadAdd") {
+      e.preventDefault();
+      commitNum();
+      return;
+    }
+    if (/^\d$/.test(e.key) && t !== el.num) {
+      e.preventDefault();
+      el.num.value = (el.num.value + e.key).slice(0, 4);
+      el.num.focus();
+      return;
+    }
+    if (e.key === "Enter" && t === el.num) {
+      e.preventDefault();
+      commitNum();
+    }
+  });
+
+  /* ---------- mouse side buttons ---------- */
+  /* Yon tugmalar brauzerda sahifani almashtirmaydi:
+     orqaga (3) = Ctrl+Z, oldinga (4) = Ctrl+Y. */
+  const sideOpts = { capture: true, passive: false };
+  function isSide(e) {
+    if (e.button !== 3 && e.button !== 4) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    return true;
+  }
+  window.addEventListener("mousedown", e => {
+    if (isSide(e)) { if (e.button === 3) undo(); else redo(); }
+  }, sideOpts);
+  ["mouseup", "pointerup", "auxclick", "click"].forEach(type => window.addEventListener(type, isSide, sideOpts));
+
+  /* ---------- lifecycle ---------- */
+  // Yangi kun boshlansa, hisob o‘zi 0 dan boshlanadi.
+  function checkNewDay() { if (rollDay()) { shown = 0; render(true); } }
+  setInterval(checkNewDay, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkNewDay(); });
+
+  // Boshqa oynada o‘zgarish bo‘lsa, shu yerda ham yangilanadi.
+  window.addEventListener("storage", e => {
+    if (e.key === KEY) { load(); renderChips(); render(true); }
+  });
+
+  /* ---------- start ---------- */
+  load();
+  el.note.hidden = saveOk;
+  el.prog.style.strokeDasharray = CIRC;
+  el.prog.style.strokeDashoffset = CIRC;
+  renderChips();
+  requestAnimationFrame(() => requestAnimationFrame(() => render(true)));
+  if (matchMedia("(hover:hover)").matches) el.num.focus();
+})();
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js");
+  }
+</script>
+</body>
+</html>
